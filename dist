@@ -1,4 +1,4 @@
 #!/bin/bash
 
-scp -r {shell.sh,appman.sh,osmaker.sh,scripts,exampleconfig.conf} \
+scp -r {appman.sh,osmaker.sh,scripts,exampleconfig.conf} \
 admin@bigsnrk.duckdns.org:~/
