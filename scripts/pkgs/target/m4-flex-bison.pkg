@@ -1,0 +1,29 @@
+pkgname=m4-flex-bison
+version=1
+sources=m4-1.4.17.tar.xz,flex-2.5.37.tar.bz2,bison-3.0.2.tar.xz
+urls=http://ftp.gnu.org/gnu/m4/,http://prdownloads.sourceforge.net/flex/,http://ftp.gnu.org/gnu/bison/
+deps=busybox
+group=coredev
+
+pkgscript ()
+{
+## m4
+	(./configure --prefix=/usr && make -j$JOBS && make install) || exit 1
+## flex
+	cd ../flex-2.5.37
+	sed -i -e '/test-bison/d' tests/Makefile.in
+	(./configure --prefix=/usr --docdir=/usr/share/doc/flex-2.5.37 && make -j$JOBS && make install) || exit 1
+	ln -sv libfl.a /usr/lib/libl.a
+	
+	echo '#!/bin/sh
+exec /usr/bin/flex -l "$@"' > /usr/bin/lex
+	chmod 755 /usr/bin/lex
+## bison
+	cd ../bison-3.0.2
+	(./configure --prefix=/usr && make -j$JOBS && make install) || exit 1
+}
+
+postscript ()
+{
+	true
+}

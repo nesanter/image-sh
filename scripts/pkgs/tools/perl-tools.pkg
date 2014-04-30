@@ -1,0 +1,18 @@
+package=perl-$PKGVER.tar.bz2
+url=http://www.cpan.org/src/5.0/
+builddir=no
+prescript ()
+{
+	wget http://www.linuxfromscratch.org/patches/lfs/development/perl-5.18.2-libc-1.patch && \
+	patch -Np1 -i perl-5.18.2-libc-1.patch
+}
+body ()
+{
+	(sh Configure -des -Dprefix=/tools && make -j$JOBS) || false
+}
+postscript ()
+{
+	cp perl cpan/podlators/pod2man /tools/bin
+	mkdir -p /tools/lib/perl5/5.18.2
+	cp -R lib/* /tools/lib/perl5/5.18.2
+}

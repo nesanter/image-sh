@@ -1,0 +1,24 @@
+package=binutils-$PKGVER.tar.bz2
+url=http://ftp.gnu.org/gnu/binutils/
+builddir=yes
+prescript ()
+{
+#	sed -i -e 's/@colophon/@@colophon/' \
+#	-e 's/doc@cygnus.com/doc@@cygnus.com/' bfd/doc/bfd.texinfo
+	true
+}
+body ()
+{
+	$PKGDIR/configure --prefix=/tools --with-sysroot=$ROOT \
+	--with-lib-path=/tools/lib \
+	--target=$TGT --disable-nls --disable-werror
+	
+	([ $? -eq 0 ] && make -j$JOBS && make install) || false
+}
+postscript ()
+{
+	if [ $(uname -m)=="x86_64" ] ; then
+		mkdir -p /tools/lib
+		ln -s lib /tools/lib64
+	fi
+}

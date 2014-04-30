@@ -1,0 +1,21 @@
+package=ncurses-$PKGVER.tar.gz
+url=http://ftp.gnu.org/gnu/ncurses/
+builddir=no
+prescript ()
+{
+	true
+}
+body ()
+{
+	./configure --prefix=tools \
+		--with-shared      \
+		--without-debug    \
+		--without-ada      \
+		--enable-overwrite
+			
+	([ $? -eq 0 ] && make -j$JOBS && make install) || false
+}
+postscript ()
+{
+	true
+}

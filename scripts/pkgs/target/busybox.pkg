@@ -1,0 +1,21 @@
+pkgname=busybox
+version=1.21.1
+sources=busybox-$version.tar.bz2
+urls=http://www.busybox.net/downloads/
+deps=ncurses
+group=util
+
+pkgscript ()
+{
+	make defconfig || exit 1
+	make menuconfig || exit 1
+	
+	make -j$JOBS || exit 1
+	
+	make install || exit 1
+}
+
+postscript ()
+{
+	true
+}

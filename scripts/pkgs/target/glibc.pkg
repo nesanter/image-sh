@@ -1,0 +1,108 @@
+pkgname=glibc
+version=2.18
+sources=glibc-$version.tar.xz,tzdata2013h.tar.gz
+urls=http://ftp.gnu.org/gnu/glibc/,http://www.iana.org/time-zones/repository/releases/
+deps=linux-headers
+group=core
+
+pkgscript ()
+{
+	sed -i -e 's/static ++m128i/inline &/' sysdeps/x86_64/multiarch/strstr.c
+	sed -r -i 's/(3..89..)/\1 | 4.*/' configure
+
+	mkdir ../glibc-build
+	cd ../glibc-build
+
+	../glibc-$version/configure                              \
+		--prefix=/usr                                    \
+		--disable-profile                                \
+		--enable-kernel=3.12.2                           \
+		--libexecdir=/usr/lib/glibc || exit 1
+	
+	make -j$JOBS || exit 1
+	
+#	make -k check 2>&1 | tee /root/glibc-check-log
+	touch /etc/ld.so.conf
+	
+	make install || exit 1
+	
+	cp -v ../glibc-$version/sunrpc/rpc/*.h /usr/include/rpc
+	cp -v ../glibc-$version/sunrpc/rpcsvc/*.h /usr/include/rpcsvc
+	cp -v ../glibc-$version/nis/rpcsvc/*.h /usr/include/rpcsvc
+	
+	mkdir -pv /usr/lib/locale
+	localedef -i en_US -f ISO-8859-1 en_US
+	localedef -i UTF-8 en_US.UTF-8
+	
+	echo "
+passwd: files
+group: files
+shadow: files
+
+hosts: files dns
+networks: files
+
+protocols: files
+services: files
+ethers: files
+rpc: files" > /etc/nsswitch.conf
+
+	cd ..
+	
+	ZONEINFO=/usr/share/zoneinfo
+	mkdir -p $ZONEINFO/posix
+	
+	for tz in etcetera southamerica northamerica europe africa antarctica  \
+	        	asia australasia backward pacificnew solar87 solar88 solar89 \
+        		systemv; do
+		zic -L /dev/null   -d $ZONEINFO       -y "sh yearistype.sh" ${tz}
+		zic -L /dev/null   -d $ZONEINFO/posix -y "sh yearistype.sh" ${tz}
+	done
+
+	cp zone.tab iso3166.tab $ZONEINFO
+	zic -d $ZONEINFO -p America/New_York
+	unset ZONEINFO
+	
+	cp /usr/share/zoneinfo/America/Detroit /etc/localtime
+	
+	echo "/usr/local/lib
+/opt/lib
+include /etc/ld.so.conf.d/*.conf" > /etc/ld.so.conf
+	mkdir -p /etc/ld.so.conf.d
+}
+
+postscript ()
+{
+	echo "Adjusting toolchain"
+	mv /tools/bin/{ld,ld-old}
+	mv /tools/$(gcc -dumpmachine)/bin/{ld,ld-old}
+	mv /tools/bin/{ld-new,ld}
+	ln -s /tools/bin/ld /tools/$(gcc -dumpmachine)/bin/ld
+	
+	gcc -dumpspecs | sed -e 's@/tools@@g'                   \
+	    -e '/\*startfile_prefix_spec:/{n;s@.*@/usr/lib/ @}' \
+	    -e '/\*cpp:/{n;s@$@ -isystem /usr/include@}' >      \
+	    `dirname $(gcc --print-libgcc-file-name)`/specs
+	    
+	echo 'main(){}' > dummy.c
+	cc dummy.c -v -Wl,--verbose &> dummy.log
+	echo "The following should read \"[Requesting program interpreter: /lib/ld-linux.so.2]\":"
+	readelf -l a.out | grep ': /lib'
+	echo "The following should read
+\"/usr/lib/crt1.0 succeeded
+ /usr/lib/crti.o succeeded
+ /usr/lib/crtn.o succeeded\":"
+	grep -o '/usr/lib.*/crt[1in].*succeeded' dummy.log
+	echo "The following should read
+\"#include <...> search starts here:
+ /usr/include\":"
+	grep -B1 '^ /usr/include' dummy.log
+	echo "The following should read
+\"SEARCH_DIR(\"/usr/lib\")
+ SEARCH_DIR(\"/lib\");\""
+	grep 'SEARCH.*/usr/lib' dummy.log |sed 's/; /\n/g'
+	echo "The following should read \"attempt to open /lib/libc.so.6 succeeded\":"
+	grep "/lib.*/libc.so.6 " dummy.log
+	echo "The following should read \"found ld-linux.so.2 at /lib/ld-linux.so.2\":"
+	grep found dummy.log
+}

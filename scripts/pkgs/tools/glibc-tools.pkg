@@ -1,0 +1,34 @@
+package=glibc-$PKGVER.tar.xz
+url=http://ftp.gnu.org/gnu/glibc/
+builddir=yes
+prescript ()
+{
+#	if [ ! -r /usr/include/rpc/types.h ]; then
+#		mkdir -p /tools/include/rpc
+#		cp sunrpc/rpc/*.h /tools/include/rpc
+#	fi
+	sed -i -e 's/static ++m128i/inline &/' sysdeps/x86_64/multiarch/strstr.c
+	sed -r -i 's/(3..89..)/\1 | 4.*/' configure
+}
+body ()
+{
+	$PKGDIR/configure                                        \
+		--prefix=/tools                                  \
+		--host=$TGT                                      \
+		--build=$(../glibc-$PKGVER/scripts/config.guess) \
+		--disable-profile                                \
+		--enable-kernel=$MINKERNEL                       \
+		--with-headers=/tools/include                    \
+		libc_cv_forced_unwind=yes                        \
+		libc_cv_ctors_header=yes                         \
+		libc_cv_c_cleanup=yes
+	
+	([ $? -eq 0 ] && make -j$JOBS && make install) || false
+}
+postscript ()
+{
+	echo 'main(){}' > dummy.c
+	$TGT-gcc dummy.c
+	TEST=$(readelf -l a.out | grep '/tools' | sed 's/.*\/tools\/lib\(64\)*\/ld-linux\(-x86-64\)*\.so\.2.*/yes/')
+	(test "$TEST" == "yes" && rm -v dummy.c a.out) || false
+}

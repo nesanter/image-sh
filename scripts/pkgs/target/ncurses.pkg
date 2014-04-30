@@ -1,0 +1,42 @@
+pkgname=ncurses
+version=5.9
+sources=ncurses-$version.tar.gz
+urls=http://ftp.gnu.org/gnu/ncurses/
+deps=pkg-config
+group=corelib
+
+pkgscript ()
+{
+	./configure --prefix=/usr       \
+		--mandir=/usr/share/man \
+		--with-shared           \
+		--without-debug         \
+		--enable-pc-files       \
+		--enable-widec
+		
+	make -j$JOBS || exit 1
+	make install || exit 1
+	
+	mv /usr/lib/libncursesw.so.5* /lib
+	ln -sf ../../lib/$(readlink /usr/lib/libncursesw.so) /usr/lib/libncursesw.so
+	
+	for lib in ncurses form panel menu ; do
+		rm -f			  /usr/lib/lib${lib}.so
+		echo "INPUT(-l${lib}w)" > /usr/lib/lib${lib}.so
+		ln -sf lib${lib}w.a       /usr/lib/lib${lib}.a
+		ln -sf ${lib}w.pc         /usr/lib/pkgconfig/${lib}.pc
+	done
+
+	ln -sf libncurses++w.a /usr/lib/libncurses++.a
+	
+	rm -f                      /usr/lib/libcursesw.so
+	echo "INPUT(-lncursesw)" > /usr/lib/libcursesw.so
+	ln -sf libncurses.so       /usr/lib/libcurses.so
+	ln -sf libncursesw.a       /usr/lib/libcursesw.a
+	ln -sf libncurses.a        /usr/lib/libcurses.a
+}
+
+postscript ()
+{
+	true
+}

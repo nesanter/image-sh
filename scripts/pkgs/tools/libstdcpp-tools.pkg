@@ -1,0 +1,25 @@
+package=gcc-$PKGVER.tar.bz2
+url=http://ftp.gnu.org/gcc/gnu/gcc-$PKGVER/
+builddir=yes
+prescript ()
+{
+	true
+}
+body ()
+{
+	$PKGDIR/libstdc++-v3/configure               \
+		--host=$TGT                          \
+		--prefix=/tools                      \
+		--disable-multilib                   \
+		--disable-shared                     \
+		--disable-nls                        \
+		--disable-libstdcxx-threads          \
+		--disable-libstdcxx-pch              \
+		--with-gxx-include-dir=/tools/$TGT/include/c++/$PKGVER
+	
+	([ $? -eq 0 ] && make -j$JOBS && make install) || false
+}
+postscript ()
+{
+	true
+}

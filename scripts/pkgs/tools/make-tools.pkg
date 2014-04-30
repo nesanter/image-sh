@@ -1,0 +1,15 @@
+package=make-$PKGVER.tar.bz2
+url=http://ftp.gnu.org/gnu/make/
+builddir=no
+prescript ()
+{
+	true
+}
+body ()
+{
+	(./configure --prefix=/tools --without-guile && make -j$JOBS && make install) || false
+}
+postscript ()
+{
+	true
+}

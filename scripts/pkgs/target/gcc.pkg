@@ -1,0 +1,80 @@
+pkgname=gcc
+version=4.8.2
+sources=gcc-$version.tar.bz2
+urls=http://ftp.gnu.org/gnu/gcc/gcc-$version/
+deps=binutils,gcc-prereq,cloog
+group=core
+
+pkgscript ()
+{
+	case $(uname -m) in
+		i?86) sed -i 's/^T_CFLAGS =$/& -fomit-frame-pointer/' gcc/Makefile.in ;;
+	esac
+	
+	sed -i 's/install_to_$(INSTALL_DEST) //' libiberty/Makefile.in
+	
+	sed -i -e /autogen/d -e /check.sh/d fixincludes/Makefile.in 
+	mv -v libmudflap/testsuite/libmudflap.c++/pass41-frag.cxx{,.disable}
+	
+	mkdir -v ../gcc-build
+	cd ../gcc-build
+	
+	../gcc-4.8.2/configure --prefix=/usr               \
+                       --libexecdir=/usr/lib       \
+                       --enable-shared             \
+                       --enable-threads=posix      \
+                       --enable-__cxa_atexit       \
+                       --enable-clocale=gnu        \
+                       --enable-languages=c,c++    \
+                       --disable-multilib          \
+                       --disable-bootstrap         \
+                       --disable-install-libiberty || exit 1
+
+	make -j$JOBS || exit 1
+	
+	make install || exit 1
+	
+	ln -sv /usr/bin/cpp /lib
+	ln -sv gcc /usr/bin/cc
+	
+	mkdir -pv /usr/share/gdb/auto-load/usr/lib
+	mv -v /lib/*gdb.py /usr/share/gdb/auto-load/usr/lib
+}
+
+postscript ()
+{
+	echo 'main(){}' > dummy.c
+	cc dummy.c -v -Wl,--verbose &> dummy.log
+	TEST=$(readelf -l a.out | grep ': /lib\(64\)*/ld-linux\(-x86-64\)*.so.2')
+	[ -n "$TEST" ] || exit 1
+	TEST=$(grep -o '/usr/lib.*/crt[1in].*succeeded' dummy.log)
+	[ "$TEST" == "/usr/lib/gcc/i686-pc-linux-gnu/4.8.2/../../../crt1.o succeeded
+/usr/lib/gcc/i686-pc-linux-gnu/4.8.2/../../../crti.o succeeded
+/usr/lib/gcc/i686-pc-linux-gnu/4.8.2/../../../crtn.o succeeded" ] || exit 1
+	TEST=$(grep -B4 '^ /usr/include' dummy.log)
+	[ "$TEST" == "#include <...> search starts here:
+ /usr/lib/gcc/\(x86-64|i686\)-.*-linux-gnu/$version/include
+ /usr/local/include
+ /usr/lib/gcc/\(x86-64|i686\)-.*-linux-gnu/$version/include-fixed
+ /usr/include" ] || exit 1
+ 	TEST=$(grep 'SEARCH.*/usr/lib' dummy.log | sed 's/; /\n/g')
+ 	[ "$TEST" == 'SEARCH_DIR("/usr/i686-pc-linux-gnu/lib")
+SEARCH_DIR("/usr/local/lib")
+SEARCH_DIR("/lib")
+SEARCH_DIR("/usr/lib");" ] || [ "$TEST" == "SEARCH_DIR("/usr/x86_64-unknown-linux-gnu/lib64")
+SEARCH_DIR("/usr/local/lib64")
+SEARCH_DIR("/lib64")
+SEARCH_DIR("/usr/lib64")
+SEARCH_DIR("/usr/x86_64-unknown-linux-gnu/lib")
+SEARCH_DIR("/usr/local/lib")
+SEARCH_DIR("/lib")
+SEARCH_DIR("/usr/lib");' ] || exit 1
+	TEST=$(grep "/lib.*/libc.so.6 " dummy.log)
+	[ "$TEST" == "attempt to open /lib/libc.so.6 succeeded" ] || exit 1
+	TEST=$(grep found dummy.log)
+	[ "$TEST" == "found ld-linux.so.2 at /lib/ld-linux.so.2" ] || \
+	[ "$TEST" == "found ld-linux-x86-64.so.2 at /lib64/ld-linux-x86-64.so.2" ] || exit 1
+	
+	rm -v dummy.c a.out
+	mv dummy.log ..
+}

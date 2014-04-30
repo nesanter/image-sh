@@ -1,0 +1,76 @@
+package=glibc-$PKGVER.tar.xz
+url=http://ftp.gnu.org/gnu/glibc/
+builddir=yes
+deps=linux-headers.pkg,tzonedummy.pkg
+prescript ()
+{
+	sed -i -e 's/static ++m128i/inline &/' sysdeps/x86_64/multiarch/strstr.c
+	sed -r -i 's/(3..89..)/\1 | 4.*/' configure
+}
+body ()
+{
+	$PKGDIR/configure                                        \
+		--prefix=/usr                                    \
+		--disable-profile                                \
+		--enable-kernel=$MINKERNEL                       \
+		--libexecdir=/usr/lib/glibc
+	
+	make -j$JOBS
+	
+	make -k check 2>&1 | tee /root/glibc-check-log
+	touch /etc/ld.so.conf
+	
+	make install
+}
+postscript ()
+{
+	cp -v ../glibc-$PKGVER/sunrpc/rpc/*.h /usr/include/rpc
+	cp -v ../glibc-$PKGVER/sunrpc/rpcsvc/*.h /usr/include/rpcsvc
+	cp -v ../glibc-$PKGVER/nis/rpcsvc/*.h /usr/include/rpcsvc
+	
+	mkdir -pv /usr/lib/locale
+	localedef -i en_US -f ISO-8859-1 en_US
+	localedef -i UTF-8 en_US.UTF-8
+	
+	make localedata/install-locales
+	
+	echo "
+passwd: files
+group: files
+shadow: files
+
+hosts: files dns
+networks: files
+
+protocols: files
+services: files
+ethers: files
+rpc: files" > /etc/nsswitch.conf
+
+	mv ../tzdata2013h .
+	
+	ZONEINFO=/usr/share/zoneinfo
+	mkdir -p $ZONEINFO/{posix,right}
+	
+	for tz in etcetera southamerica northamerica europe africa antarctica  \
+	        	asia australasia backward pacificnew solar87 solar88 solar89 \
+        		systemv; do
+		zic -L /dev/null   -d $ZONEINFO       -y "sh yearistype.sh" ${tz}
+		zic -L /dev/null   -d $ZONEINFO/posix -y "sh yearistype.sh" ${tz}
+		zic -L leapseconds -d $ZONEINFO/right -y "sh yearistype.sh" ${tz}
+	done
+
+	cp zone.tab iso3166.tab $ZONEINFO
+	zic -d $ZONEINFO -p America/New_York
+	unset ZONEINFO
+	
+	cp --remove-destination /usr/share/zoneinfo/America/Detroit /etc/localtime
+	
+	echo "/usr/local/lib
+/opt/lib
+include /etc/ld.so.conf.d/*.conf" > /etc/ld.so.conf
+	mkdir -p /etc/ld.so.conf.d
+	
+	echo "====NOTICE===="
+	echo "PLEASE CHECK /root/glibc-check-log FOR ERRORS!"
+}

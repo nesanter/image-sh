@@ -1,0 +1,7 @@
+package=gmp-$PKGVER.tar.xz
+url=http://ftp.gnu.org/gnu/gmp/
+builddir=no
+dummy=yes
+keep=yes
+
+GMPVER=$PKGVER

@@ -1,0 +1,15 @@
+package=linux-$PKGVER.tar.xz
+url=http://www.kernel.org/pub/linux/kernel/v3.x/
+builddir=no
+prescript ()
+{
+	true
+}
+body ()
+{
+	(make mrproper && make headers_check && make INSTALL_HDR_PATH=dest headers_install) || false
+}
+postscript ()
+{
+	cp -r dest/include/* /tools/include
+}

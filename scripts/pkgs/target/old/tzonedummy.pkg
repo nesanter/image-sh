@@ -1,0 +1,5 @@
+package=tzdata2013h.tar.gz
+url=http://www.iana.org/time-zones/repository/releases/
+builddir=no
+dummy=yes
+keep=yes

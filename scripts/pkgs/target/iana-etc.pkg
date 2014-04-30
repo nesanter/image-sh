@@ -1,0 +1,17 @@
+pkgname=iana-etc
+version=2.30
+sources=iana-etc-$version.tar.bz2
+urls= http://anduin.linuxfromscratch.org/sources/LFS/lfs-packages/conglomeration/iana-etc/
+deps=busybox
+group=util
+
+pkgscript ()
+{
+	make -j$JOBS || exit 1
+	make install || exit 1
+}
+
+postscript ()
+{
+	true
+}

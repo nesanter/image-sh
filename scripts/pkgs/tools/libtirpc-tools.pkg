@@ -1,0 +1,15 @@
+package=libtirpc-$PKGVER.tar.bz2
+url=http://nfsv4.bullopensource.org/tarballs/tirpc/
+builddir=no
+prescript ()
+{
+	true
+}
+body ()
+{
+	(./configure --prefix=/tools && make -j$JOBS && make install) || false
+}
+postscript ()
+{
+	true
+}

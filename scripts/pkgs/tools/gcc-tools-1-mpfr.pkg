@@ -1,0 +1,7 @@
+package=mpfr-$PKGVER.tar.xz
+url=http://www.mpfr.org/mpfr-$PKGVER/
+builddir=no
+dummy=yes
+keep=yes
+
+MPFRVER=$PKGVER

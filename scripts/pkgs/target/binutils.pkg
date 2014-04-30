@@ -1,0 +1,28 @@
+pkgname=binutils
+version=2.24
+sources=binutils-$version.tar.bz2
+urls=http://ftp.gnu.org/gnu/binutils/
+deps=glibc,file
+group=core
+
+pkgscript ()
+{
+	rm -fv etc/standards.info
+	sed -i.bak '/^INFO/s/standards.info //' etc/Makefile.in
+	
+	mkdir -v ../binutils-build
+	cd ../binutils-build
+	
+	../binutils-$version/configure --prefix=/usr --enable-shared
+	
+	make -j$JOBS tooldir=/usr
+	
+	make tooldir=/usr install
+	
+	cp -v ../binutils-$version/include/libiberty.h /usr/include
+}
+
+postscript ()
+{
+	true
+}

@@ -1,0 +1,35 @@
+pkgname=cloog
+version=0.18.1
+islversion=0.12.1
+sources=cloog-$version.tar.gz,isl-$islversion.tar.lzma
+urls=http://www.bastoul.net/cloog/pages/download/,http://isl.gforge.inria.fr/
+deps=gcc-prereq
+group=core
+
+pkgscript ()
+{
+	cd ../isl-$islversion
+	
+	./configure --prefix=/usr || exit 1
+	
+	make -j$JOBS || exit 1
+	
+	make install || exit 1
+	
+	cd ../cloog-$version
+
+	./configure --prefix=/usr \
+		--enable-shared   \
+		--with-bits=gmp   \
+		--with-isl=system \
+		|| exit 1
+	
+	make -j$JOBS || exit 1
+	
+	make install || exit 1
+}
+
+postscript ()
+{
+	true
+}

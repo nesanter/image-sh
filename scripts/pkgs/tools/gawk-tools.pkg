@@ -1,0 +1,15 @@
+package=gawk-$PKGVER.tar.xz
+url=http://ftp.gnu.org/gnu/gawk/
+builddir=no
+prescript ()
+{
+	true
+}
+body ()
+{
+	(./configure --prefix=/tools && make -j$JOBS && make install) || false
+}
+postscript ()
+{
+	true
+}

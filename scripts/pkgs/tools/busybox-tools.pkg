@@ -1,0 +1,17 @@
+package=busybox-$PKGVER.tar.bz2
+url=http://www.busybox.net/downloads/
+builddir=no
+prescript ()
+{
+	true
+}
+body ()
+{
+	(cp $SCRIPT_DIR/pkgs/misc/busybox-config .config && \
+	make -j$JOBS busybox && \
+	make install) || false
+}
+postscript ()
+{
+	cp -r _install/* /tools/
+}

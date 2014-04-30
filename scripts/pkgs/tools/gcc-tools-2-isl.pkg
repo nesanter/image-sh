@@ -1,0 +1,7 @@
+package=isl-$PKGVER.tar.lzma
+url=http://isl.gforge.inria.fr/
+builddir=no
+dummy=yes
+keep=yes
+
+ISLVER=$PKGVER

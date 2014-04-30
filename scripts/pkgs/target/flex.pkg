@@ -1,0 +1,20 @@
+pkgname=m4
+version=1.4.17
+sources=m4-$version.tar.xz
+urls=http://ftp.gnu.org/gnu/m4/
+deps=busybox
+group=coredev
+
+pkgscript ()
+{
+	./configure --prefix=/usr || exit 1
+	
+	make -j$JOBS || exit 1
+	
+	make install || exit 1
+}
+
+postscript ()
+{
+	true
+}

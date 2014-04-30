@@ -1,0 +1,7 @@
+#!/bin/bash
+
+if [ "$1" == "-v" ] ; then
+	env - /sbin/ldconfig -v
+else
+	env - /sbin/ldconfig
+fi

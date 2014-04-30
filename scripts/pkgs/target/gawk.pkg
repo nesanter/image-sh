@@ -1,0 +1,18 @@
+pkgname=gawk
+version=4.1.0
+sources=gawk-$version.tar.xz
+urls=http://ftp.gnu.org/gnu/gawk/
+deps=gcc
+group=util
+
+pkgscript ()
+{
+	./configure --prefix=/usr --libexecdir=/usr/lib || exit 1
+	make -j$JOBS || exit 1
+	make install || exit 1
+}
+
+postscript ()
+{
+	true
+}

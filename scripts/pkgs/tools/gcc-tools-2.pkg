@@ -1,0 +1,78 @@
+package=gcc-$PKGVER.tar.bz2
+url=http://ftp.gnu.org/gnu/gcc/gcc-4.8.2/
+builddir=yes
+
+GCCVER=$PKGVER
+
+prescript ()
+{
+	cat gcc/limitx.h gcc/glimits.h gcc/limity.h > \
+		`dirname $($TGT-gcc -print-libgcc-file-name)`/include-fixed/limits.h
+		
+	cp gcc/Makefile.in{,.tmp}
+	sed 's/^T_CFLAGS =$/& -fomit-frame-pointer/' gcc/Makefile.in.tmp \
+		> gcc/Makefile.in
+		
+	
+	for file in \
+		$(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
+	do
+		cp -u $file{,.orig}
+		sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&@g' \
+		-e 's@/usr@/tools@g' $file.orig > $file
+		echo '
+#undef STANDARD_STARTFILE_PREFIX_1
+#undef STANDARD_STARTFILE_PREFIX_2
+#define STANDARD_STARTFILE_PREFIX_1 "/tools/lib/"
+#define STANDARD_STARTFILE_PREFIX_2 ""' >> $file
+		touch $file.orig
+	done
+	
+	tar -Jxf ../mpfr-$MPFRVER.tar.xz
+	mv mpfr-$MPFRVER mpfr
+	tar -Jxf ../gmp-$GMPVER.tar.xz
+	mv gmp-$GMPVER gmp
+	tar -zxf ../mpc-$MPCVER.tar.gz
+	mv mpc-$MPCVER mpc
+	
+	mv ../isl-$ISLVER isl
+	mv ../cloog-$CLOOGVER cloog
+}
+body ()
+{
+	CC=$TGT-gcc                                      \
+	CXX=$TGT-g++                                     \
+	AR=$TGT-ar                                       \
+	RANLIB=$TGT-ranlib                               \
+	$PKGDIR/configure                                    \
+	    --prefix=/tools                                  \
+	    --with-local-prefix=/tools                       \
+	    --with-native-system-header-dir=/tools/include   \
+	    --enable-clocale=gnu                             \
+	    --enable-shared                                  \
+	    --enable-threads=posix                           \
+	    --enable-__cxa_atexit                            \
+	    --enable-languages=c,c++                         \
+	    --disable-libstdcxx-pch                          \
+	    --disable-multilib                               \
+	    --disable-bootstrap                              \
+	    --disable-libgomp                                \
+	    --enable-cloog-backend=isl                       \
+	    --with-mpfr-include=$PKGDIR/mpfr/src	     \
+	    --with-mpfr-lib=$(pwd)/mpfr/src/.libs
+	
+	([ $? -eq 0 ] && make -j$JOBS && make install) || false
+}
+postscript ()
+{
+	ln -s gcc /tools/bin/cc
+	
+	echo 'main(){}' > dummy.c
+	cc dummy.c
+	TEST=$(readelf -l a.out | grep '/tools' | sed 's/.*\/tools\/lib\(64\)*\/ld-linux\(-x86-64\)*\.so\.2.*/yes/')
+	(test $TEST == "yes" && rm -v dummy.c a.out) || (false; exit)
+	
+	rm -r ../mpfr-$MPFRVER.tar.xz
+	rm -r ../mpc-$MPCVER.tar.gz
+	rm -r ../gmp-$GMPVER.tar.xz
+}
